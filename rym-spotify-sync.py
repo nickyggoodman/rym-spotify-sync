@@ -7,25 +7,41 @@ user in RYM. A total of 11 playlists are made. One for unrated albums (albums
 with a rating of 0) and ten for albums rating 1 through 10.
 '''
 
-import sys
-import csv
+from http import server
 import string
 import secrets  # "suitable for managing data such as [...] account auth"
 import hashlib
 import base64
 import webbrowser
-import requests
-
+import urllib
 
 BASE_URL = 'https://api.spotify.com'
 
-REDIRECT_URL = 'http://localhost:8080'
+REDIRECT_URL = 'http://localhost:3000/callback'
 CLIENT_ID = '58a65635db43470fa773cba91b820b49'
 
 AUTHORIZATION_ENDPOINT = 'https://accounts.spotify.com/authorize'
 TOKEN_ENDPOINT = 'https://accounts.spotify.com/api/token'
 SCOPE = 'user-read-private user-read-email'
 
+running = True
+
+class SimpleHTTPRequestHandler(server.BaseHTTPRequestHandler):
+    """HTTP request handler with additional properties and functions"""
+
+    def do_GET(self):
+        """Handle GET requests"""
+        global running
+        running = False
+        self.send_response(200)
+        self.end_headers()
+
+def run_server(server_class=server.HTTPServer, handler_class=SimpleHTTPRequestHandler):
+    server_address = ('', 3000)
+    httpd = server_class(server_address, handler_class)
+    while running:
+        print(running)
+        httpd.handle_request()
 
 def generate_random_string(length):
     possible = string.ascii_letters + string.digits
@@ -50,8 +66,8 @@ if __name__ == "__main__":
             'code_challenge': code_challenge,
             'redirect_uri': REDIRECT_URL
             }
-    r = requests.get(AUTHORIZATION_ENDPOINT, params=payload)
-    # print(r.text)
-    # print(r.url)
-    print(r.history)
 
+    r = webbrowser.open(AUTHORIZATION_ENDPOINT + "?" + urllib.parse.urlencode(payload))
+    run_server()
+
+   
