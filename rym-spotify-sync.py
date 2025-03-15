@@ -14,6 +14,8 @@ import hashlib
 import base64
 import webbrowser
 import urllib
+import requests
+from urllib.parse import urlparse, parse_qs
 
 BASE_URL = 'https://api.spotify.com'
 
@@ -25,6 +27,8 @@ TOKEN_ENDPOINT = 'https://accounts.spotify.com/api/token'
 SCOPE = 'user-read-private user-read-email'
 
 running = True
+code = ''
+
 
 class SimpleHTTPRequestHandler(server.BaseHTTPRequestHandler):
     """HTTP request handler with additional properties and functions"""
@@ -32,16 +36,21 @@ class SimpleHTTPRequestHandler(server.BaseHTTPRequestHandler):
     def do_GET(self):
         """Handle GET requests"""
         global running
+        global code
         running = False
+        query = urlparse(self.path).query
+        query_components = dict(qc.split("=") for qc in query.split("&"))
+        code = query_components['code']
         self.send_response(200)
         self.end_headers()
+
 
 def run_server(server_class=server.HTTPServer, handler_class=SimpleHTTPRequestHandler):
     server_address = ('', 3000)
     httpd = server_class(server_address, handler_class)
     while running:
-        print(running)
         httpd.handle_request()
+
 
 def generate_random_string(length):
     possible = string.ascii_letters + string.digits
@@ -68,6 +77,15 @@ if __name__ == "__main__":
             }
 
     r = webbrowser.open(AUTHORIZATION_ENDPOINT + "?" + urllib.parse.urlencode(payload))
+    print(r)
     run_server()
-
-   
+    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+    payload = {
+            'client_id': CLIENT_ID,
+            'grant_type': 'authorization_code',
+            'code': code,
+            'redirect_uri': REDIRECT_URL,
+            'code_verifier': code_verifier,
+            }
+    r = requests.post(TOKEN_ENDPOINT, headers=headers, data=payload)
+    print(r.text)
