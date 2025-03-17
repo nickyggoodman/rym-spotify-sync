@@ -60,13 +60,20 @@ def generate_random_string(length):
 def sha256(plain):
     m = hashlib.sha256()
     m.update(plain.encode())
-    return m.digest()
+    hashed = m.digest()
+    return hashed
+
+
+def base64_encode(input):
+    return base64.b64encode(input).replace(b'=', b'').replace(b'+', b'-').replace(b'/', b'_')
 
 
 if __name__ == "__main__":
     code_verifier = generate_random_string(64)
+
     hashed = sha256(code_verifier)
-    code_challenge = base64.b64encode(hashed)
+    code_challenge = base64_encode(hashed)
+    
     payload = {
             'response_type': 'code',
             'client_id': CLIENT_ID,
@@ -77,15 +84,16 @@ if __name__ == "__main__":
             }
 
     r = webbrowser.open(AUTHORIZATION_ENDPOINT + "?" + urllib.parse.urlencode(payload))
-    print(r)
     run_server()
-    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+    headers = {
+            'Content-Type': 'application/x-www-form-urlencoded'
+    }
     payload = {
             'client_id': CLIENT_ID,
             'grant_type': 'authorization_code',
             'code': code,
             'redirect_uri': REDIRECT_URL,
             'code_verifier': code_verifier,
-            }
-    r = requests.post(TOKEN_ENDPOINT, headers=headers, data=payload)
+    }
+    r = requests.post(TOKEN_ENDPOINT, headers=headers, params=payload)
     print(r.text)
