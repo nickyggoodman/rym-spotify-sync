@@ -16,15 +16,16 @@ import webbrowser
 import urllib
 import requests
 from urllib.parse import urlparse, parse_qs
+import json
 
-BASE_URL = 'https://api.spotify.com'
+BASE_URL = 'https://api.spotify.com/v1'
 
 REDIRECT_URL = 'http://localhost:3000/callback'
 CLIENT_ID = '58a65635db43470fa773cba91b820b49'
 
 AUTHORIZATION_ENDPOINT = 'https://accounts.spotify.com/authorize'
 TOKEN_ENDPOINT = 'https://accounts.spotify.com/api/token'
-SCOPE = 'user-read-private user-read-email'
+SCOPE = 'user-read-private playlist-read-private'
 
 running = True
 code = ''
@@ -73,7 +74,7 @@ if __name__ == "__main__":
 
     hashed = sha256(code_verifier)
     code_challenge = base64_encode(hashed)
-    
+
     payload = {
             'response_type': 'code',
             'client_id': CLIENT_ID,
@@ -96,4 +97,8 @@ if __name__ == "__main__":
             'code_verifier': code_verifier,
     }
     r = requests.post(TOKEN_ENDPOINT, headers=headers, params=payload)
+    current_token = json.loads(r.text)
+    r = requests.get(BASE_URL + "/me", headers={"Authorization": "Bearer " + current_token["access_token"]})
+    current_user = r.text
+    r = requests.get(BASE_URL + "/me/playlists", headers={"Authorization": "Bearer" + current_token["access_token"]})
     print(r.text)
