@@ -25,7 +25,7 @@ CLIENT_ID = '58a65635db43470fa773cba91b820b49'
 
 AUTHORIZATION_ENDPOINT = 'https://accounts.spotify.com/authorize'
 TOKEN_ENDPOINT = 'https://accounts.spotify.com/api/token'
-SCOPE = 'user-read-private playlist-read-private'
+SCOPE = 'user-read-private playlist-read-private playlist-modify-public playlist-modify-private'
 
 running = True
 code = ''
@@ -98,7 +98,41 @@ if __name__ == "__main__":
     }
     r = requests.post(TOKEN_ENDPOINT, headers=headers, params=payload)
     current_token = json.loads(r.text)
-    r = requests.get(BASE_URL + "/me", headers={"Authorization": "Bearer " + current_token["access_token"]})
-    current_user = r.text
-    r = requests.get(BASE_URL + "/me/playlists", headers={"Authorization": "Bearer" + current_token["access_token"]})
-    print(r.text)
+
+    headers = {"Authorization": "Bearer " + current_token["access_token"]}
+
+    r = requests.get(BASE_URL + "/me", headers=headers)
+    current_user = json.loads(r.text)
+    print(json.dumps(current_user, indent=4))
+
+    r = requests.get(BASE_URL + "/me/playlists", headers=headers)
+    current_user_playlists = json.loads(r.text)
+    # print(json.dumps(current_user_playlists, indent=4))
+
+    # start by adding every album to one playlist, regardless of rating
+    if 'rym' not in [item['name'] for item in current_user_playlists['items']]:
+        data = {'name': 'rym'}
+        headers = {
+                    "Authorization": "Bearer " + current_token["access_token"],
+                    'Content-Type': 'application/json'
+                }
+        r = requests.post(BASE_URL + f'/users/{current_user["id"]}/playlists',
+                          headers=headers,
+                          data=json.dumps(data))
+        print(r.text)
+
+        headers = {
+                    "Authorization": "Bearer " + current_token["access_token"],
+                    'Content-Type': 'image/jpeg'
+                }
+        playlist_info = json.loads(r.text)
+        with open('sonemic.jpeg', 'rb') as image_file:
+            base64_bytes = base64.b64encode(image_file.read())
+
+            base64_string = base64_bytes.decode()
+            r = requests.post(BASE_URL + f'/playlists/{playlist_info["id"]}/images',
+                              headers=headers,
+                              data=base64_string.strip("=").strip("+"))
+            print(base64_string)
+            print(r.text)
+
