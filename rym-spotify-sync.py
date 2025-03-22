@@ -7,6 +7,8 @@ user in RYM. A total of 11 playlists are made. One for unrated albums (albums
 with a rating of 0) and ten for albums rating 1 through 10.
 '''
 
+import csv
+import sys
 from http import server
 import string
 import secrets  # "suitable for managing data such as [...] account auth"
@@ -15,7 +17,7 @@ import base64
 import webbrowser
 import urllib
 import requests
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse
 import json
 
 BASE_URL = 'https://api.spotify.com/v1'
@@ -25,7 +27,7 @@ CLIENT_ID = '58a65635db43470fa773cba91b820b49'
 
 AUTHORIZATION_ENDPOINT = 'https://accounts.spotify.com/authorize'
 TOKEN_ENDPOINT = 'https://accounts.spotify.com/api/token'
-SCOPE = 'user-read-private playlist-read-private playlist-modify-public playlist-modify-private'
+SCOPE = 'user-read-private playlist-read-private playlist-modify-public playlist-modify-private ugc-image-upload'
 
 running = True
 code = ''
@@ -69,7 +71,7 @@ def base64_encode(input):
     return base64.b64encode(input).replace(b'=', b'').replace(b'+', b'-').replace(b'/', b'_')
 
 
-if __name__ == "__main__":
+def request_access_token():
     code_verifier = generate_random_string(64)
 
     hashed = sha256(code_verifier)
@@ -99,17 +101,21 @@ if __name__ == "__main__":
     r = requests.post(TOKEN_ENDPOINT, headers=headers, params=payload)
     current_token = json.loads(r.text)
 
+    return current_token
+
+
+def generate_rym_playlist(current_token):
+
     headers = {"Authorization": "Bearer " + current_token["access_token"]}
 
     r = requests.get(BASE_URL + "/me", headers=headers)
     current_user = json.loads(r.text)
-    print(json.dumps(current_user, indent=4))
 
     r = requests.get(BASE_URL + "/me/playlists", headers=headers)
     current_user_playlists = json.loads(r.text)
     # print(json.dumps(current_user_playlists, indent=4))
 
-    # start by adding every album to one playlist, regardless of rating
+    # create playlist "rym" with sonemic logo
     if 'rym' not in [item['name'] for item in current_user_playlists['items']]:
         data = {'name': 'rym'}
         headers = {
@@ -119,7 +125,7 @@ if __name__ == "__main__":
         r = requests.post(BASE_URL + f'/users/{current_user["id"]}/playlists',
                           headers=headers,
                           data=json.dumps(data))
-        print(r.text)
+        # print(r.text)
 
         headers = {
                     "Authorization": "Bearer " + current_token["access_token"],
@@ -129,10 +135,36 @@ if __name__ == "__main__":
         with open('sonemic.jpeg', 'rb') as image_file:
             base64_bytes = base64.b64encode(image_file.read())
 
-            base64_string = base64_bytes.decode()
-            r = requests.post(BASE_URL + f'/playlists/{playlist_info["id"]}/images',
-                              headers=headers,
-                              data=base64_string.strip("=").strip("+"))
-            print(base64_string)
-            print(r.text)
+            r = requests.put(BASE_URL + f'/playlists/{playlist_info["id"]}/images',
+                             headers=headers,
+                             data=base64_bytes)
 
+
+if __name__ == "__main__":
+
+    if len(sys.argv) != 2:
+        print("Exactly one argument for the rym export filename is required.")
+        print("e.g., python3 rym-spotify-sync.py <filename>")
+        sys.exit(1)
+
+    current_token = request_access_token()
+    generate_rym_playlist(current_token)
+
+    filename = sys.argv[1]
+    with open(filename, newline='') as csvfile:
+        reader = csv.reader(csvfile)
+        count = 1
+        for row in reader:
+            album_title = row[5]
+            artist = row[1] + " " + row[2]
+            print(str(count) + ": ")
+            print("query: " + album_title + ", " + artist)
+            payload = {'q': f'{album_title}%2520artist%3A{artist}', 'type': 'album', 'limit': 1}
+            headers = {"Authorization": "Bearer " + current_token["access_token"]}
+            r = requests.get(BASE_URL + '/search', params=payload, headers=headers)
+            if r.status_code == 200:
+                print(json.dumps(json.loads(r.text)['albums']['items'][0]['name']) +
+                      json.dumps(json.loads(r.text)['albums']['items'][0]['artists'][0]['name']))
+            else:
+                print(json.loads(r.text)['error']['message'])
+            count += 1
