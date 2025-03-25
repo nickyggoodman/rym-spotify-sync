@@ -104,19 +104,16 @@ def request_access_token():
     return current_token
 
 
+# create playlist "rym" with sonemic logo if it does not already exist
 def generate_rym_playlist(current_token):
 
-    headers = {"Authorization": "Bearer " + current_token["access_token"]}
+    if not get_playlist_id(current_token):
+        print('GENERATING PLAYLIST')
+        headers = {"Authorization": "Bearer " + current_token["access_token"]}
 
-    r = requests.get(BASE_URL + "/me", headers=headers)
-    current_user = json.loads(r.text)
+        r = requests.get(BASE_URL + "/me", headers=headers)
+        current_user = json.loads(r.text)
 
-    r = requests.get(BASE_URL + "/me/playlists", headers=headers)
-    current_user_playlists = json.loads(r.text)
-    # print(json.dumps(current_user_playlists, indent=4))
-
-    # create playlist "rym" with sonemic logo
-    if 'rym' not in [item['name'] for item in current_user_playlists['items']]:
         data = {'name': 'rym'}
         headers = {
                     "Authorization": "Bearer " + current_token["access_token"],
@@ -140,6 +137,64 @@ def generate_rym_playlist(current_token):
                              data=base64_bytes)
 
 
+# get the playlist id if it exists, otherwise return an empty string
+def get_playlist_id(current_token):
+    headers = {"Authorization": "Bearer " + current_token["access_token"]}
+
+    r = requests.get(BASE_URL + "/me/playlists", headers=headers)
+    current_user_playlists = json.loads(r.text)
+
+    for item in current_user_playlists['items']:
+        if item['name'] == 'rym':
+            return item['id']
+
+    return ''
+
+
+# adds albums to the generated playlist, or existing playlist
+def add_albums(access_token, csv_filename, playlist_id):
+
+    with open(csv_filename, newline='') as csvfile:
+        reader = csv.reader(csvfile)
+        count = 1
+        for row in reader:
+            album_title = row[5]
+            artist = row[1] + " " + row[2] if row[1] else row[2]
+            
+            print(str(count) + ": ")
+
+            query = album_title + ", " + artist
+            print("query: " + query)
+
+            payload = {'q': f'{album_title}%2520artist%3A{artist}', 'type': 'album', 'limit': 1}
+            headers = {"Authorization": "Bearer " + current_token["access_token"]}
+            r = requests.get(BASE_URL + '/search', params=payload, headers=headers)
+            if r.status_code == 200:
+                #payload = {'q': f'BCD%2520artist%3ABasic Channel', 'type': 'album', 'limit': 3}
+                #headers = {"Authorization": "Bearer " + current_token["access_token"]}
+                #r = requests.get(BASE_URL + '/search', params=payload, headers=headers)
+                #print([item['name'] for item in json.loads(r.text)['albums']['items']])
+                res = json.loads(r.text)['albums']['items'][0]['name'] + ', ' + json.loads(r.text)['albums']['items'][0]['artists'][0]['name']
+                print(res)
+                if res.lower() == query.lower():
+                    album_id = json.loads(r.text)['albums']['items'][0]['id']
+                    r = requests.get(BASE_URL + f'/albums/{album_id}/tracks', headers=headers)
+                    track_uris = [f'spotify:track:{item["id"]}' for item in json.loads(r.text)['items']]
+                    uris_dict = {'uris': track_uris}
+                    uris_json = json.dumps(uris_dict)
+                    print(uris_json)
+                    headers = {
+                            "Authorization": "Bearer " + current_token["access_token"],
+                            "Content-Type": "application/json"
+                            }
+
+                    r = requests.post(BASE_URL + f'/playlists/{playlist_id}/tracks', headers=headers, data=uris_json)
+            else:
+                print(json.loads(r.text)['error']['message'])
+            
+            count += 1
+
+
 if __name__ == "__main__":
 
     if len(sys.argv) != 2:
@@ -147,24 +202,14 @@ if __name__ == "__main__":
         print("e.g., python3 rym-spotify-sync.py <filename>")
         sys.exit(1)
 
-    current_token = request_access_token()
-    generate_rym_playlist(current_token)
-
     filename = sys.argv[1]
-    with open(filename, newline='') as csvfile:
-        reader = csv.reader(csvfile)
-        count = 1
-        for row in reader:
-            album_title = row[5]
-            artist = row[1] + " " + row[2]
-            print(str(count) + ": ")
-            print("query: " + album_title + ", " + artist)
-            payload = {'q': f'{album_title}%2520artist%3A{artist}', 'type': 'album', 'limit': 1}
-            headers = {"Authorization": "Bearer " + current_token["access_token"]}
-            r = requests.get(BASE_URL + '/search', params=payload, headers=headers)
-            if r.status_code == 200:
-                print(json.dumps(json.loads(r.text)['albums']['items'][0]['name']) +
-                      json.dumps(json.loads(r.text)['albums']['items'][0]['artists'][0]['name']))
-            else:
-                print(json.loads(r.text)['error']['message'])
-            count += 1
+
+    current_token = request_access_token()
+
+    generate_rym_playlist(current_token)
+    playlist_id = get_playlist_id(current_token)
+
+    add_albums(current_token, filename, playlist_id)
+
+
+

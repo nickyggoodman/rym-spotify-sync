@@ -1,0 +1,164 @@
+1: 
+query: Title,  First Name Last Name
+"Household Name""Momma"
+2: 
+query: Matrix 5: Threnody to the Victims of Hiroshima; Canticum canticorum Salomonis; De natura sonoris Nos. 1 &amp; 2,  Polish Radio National Symphony Orchestra / London Symphony Orchestra / Krakow Philharmonic Chorus / Krzysztof Penderecki / Wanda Wiłkomirska
+Query exceeds maximum length of 250 characters
+3: 
+query: 꿈에서 걸려온 전화,  김뜻돌
+"\uc81c 32 \ud68c \uc720\uc7ac\ud558 \uc74c\uc545\uacbd\uc5f0\ub300\ud68c""Various Artists"
+4: 
+query: Day Is Far Too Long,  전자양
+"Day Is Far Too Long""\uc804\uc790\uc591"
+5: 
+query: 무너지기,  공중도둑
+"\uc81c 32 \ud68c \uc720\uc7ac\ud558 \uc74c\uc545\uacbd\uc5f0\ub300\ud68c""Various Artists"
+6: 
+query: To See the Next Part of the Dream,  파란노을
+"The Dream Chapter: ETERNITY""TOMORROW X TOGETHER"
+7: 
+query: Without Warning,  21 Savage, Offset &amp; Metro Boomin
+"Without Warning""21 Savage"
+8: 
+query: 302 Acid 0005,  302 Acid
+"ACIDO""UdieNnx"
+9: 
+query: Я заказан,  4 позиции Бруно
+"\u042f \u0417\u0430\u043a\u0430\u0437\u0430\u043d""4 \u041f\u043e\u0437\u0438\u0446\u0438\u0438 \u0411\u0440\u0443\u043d\u043e"
+10: 
+query: To Be Surreal, The 7th Plain
+"The Age Of Aquarius""The 5th Dimension"
+11: 
+query: New Level,  A$AP Ferg
+"New Level (feat. Future)""A$AP Ferg"
+12: 
+query: RAF,  A$AP Mob
+"LONG.LIVE.A$AP (Deluxe Version)""A$AP Rocky"
+13: 
+query: Praise the Lord (Da Shine),  A$AP Rocky
+"Praise The Lord (Da Shine) (feat. Skepta) [Durdenhauer Edit]""Durdenhauer"
+14: 
+query: Detrevolution,  Aaron Carl
+"Detrevolution""Aaron Carl"
+15: 
+query: Down,  Aaron Carl
+"Down""Aaron Carl"
+16: 
+query: Blank Fashion Mystical,  Acetantina
+"Mystical Murmurs""Mijongya"
+17: 
+query: Malm,  Acronym
+"Malm""Acronym"
+18: 
+query: Mr. Wonderful,  Action Bronson
+"Mr. Wonderful""Action Bronson"
+19: 
+query: Orphans,  AFX
+"orphaned deejay selek 2006-2008""AFX"
+20: 
+query: 2012 - 2017,  Against All Logic
+"2012 - 2017""Against All Logic"
+21: 
+query: 2017 - 2019,  Against All Logic
+"2012 - 2017""Against All Logic"
+22: 
+query: Murmansk-60,  AL-90
+"Murmansk-60""AL-90"
+23: 
+query: Grapes From the Estate, Oren Ambarchi
+"Grapes from the Estate""Oren Ambarchi"
+24: 
+query: Sagittarian Domain, Oren Ambarchi
+"Time Stretching""Ambrose Alo"
+25: 
+query: The Twister, Gene Ammons
+"Twisters: The Album""Various Artists"
+26: 
+query: Weighing Souls With Sand, The Angelic Process
+"Weighing Souls With Sand""The Angelic Process"
+27: 
+query: Merriweather Post Pavilion,  Animal Collective
+"Merriweather Post Pavilion""Animal Collective"
+28: 
+query: Underwater Tank,  Antwon x Ugly Mane
+"BUTTERFLY KISSES""Antwon"
+29: 
+query: Analord 10,  Aphex Twin
+"Drukqs""Aphex Twin"
+30: 
+query: Blackbox Life Recorder 21f / in a room7 F760,  Aphex Twin
+"Blackbox Life Recorder 21f / in a room7 F760""Aphex Twin"
+31: 
+query: Collapse EP,  Aphex Twin
+"Drukqs""Aphex Twin"
+32: 
+query: Come to Daddy,  Aphex Twin
+"Come To Daddy""Aphex Twin"
+33: 
+query: drukqs,  Aphex Twin
+"Drukqs""Aphex Twin"
+34: 
+query: ...I Care Because You Do,  Aphex Twin
+"...I Care Because You Do""Aphex Twin"
+35: 
+query: Richard D. James Album,  Aphex Twin
+"Richard D. James Album""Aphex Twin"
+36: 
+query: Selected Ambient Works 85-92,  Aphex Twin
+"Selected Ambient Works 85-92""Aphex Twin"
+37: 
+query: Selected Ambient Works Volume II,  Aphex Twin
+"Selected Ambient Works 85-92""Aphex Twin"
+38: 
+query: Syro,  Aphex Twin
+"Syro""Aphex Twin"
+39: 
+query: Walls,  Apparat
+"Walls""Apparat"
+40: 
+query: We Buy Diabetic Test Strips,  Armand Hammer
+"Haram""Armand Hammer"
+41: 
+query: Louis Armstrong Plays W. C. Handy, Louis Armstrong
+"Louis Armstrong Plays W. C. Handy""Louis Armstrong"
+42: 
+query: Satch Plays Fats: A Tribute to the Immortal Fats Waller, Louis Armstrong and His All-Stars
+"Satch Plays Fats""Louis Armstrong"
+43: 
+query: a.s.o.,  a.s.o.
+"a.s.o.""a.s.o."
+44: 
+query: A Clarion Call,  Asunder
+"A Sudden Display of Light""Clarico"
+45: 
+query: The Berlin Sessions, Juan Atkins
+"The Berlin Sessions""Juan Atkins"
+46: 
+query: From the Heart, It's a Start, a Work of Art, Shinichi Atobe
+"From the Heart, It's a Start, A Work of Art""Shinichi Atobe"
+47: 
+query: Heat, Shinichi Atobe
+"Heat""Shinichi Atobe"
+48: 
+query: Love of Plastic, Shinichi Atobe
+"Love of Plastic""Shinichi Atobe"
+49: 
+query: Ship-Scope / Plug and Delay / Rainstick / The Red Line, Shinichi Atobe
+"From the Heart, It's a Start, A Work of Art""Shinichi Atobe"
+50: 
+query: World, Shinichi Atobe
+"From the Heart, It's a Start, A Work of Art""Shinichi Atobe"
+51: 
+query: Yes, Shinichi Atobe
+"Yes""Shinichi Atobe"
+52: 
+query: Amber,  Autechre
+"Amber""Autechre"
+53: 
+query: Autechre [LP5],  Autechre
+"LP5""Autechre"
+54: 
+query: Chiastic Slide,  Autechre
+"Chiastic Slide""Autechre"
+55: 
+query: Confield,  Autechre
