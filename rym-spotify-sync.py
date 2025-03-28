@@ -156,47 +156,63 @@ def add_albums(access_token, csv_filename, playlist_id):
 
     with open(csv_filename, newline='') as csvfile:
         reader = csv.reader(csvfile)
-        count = 1
+        count = 1  # for printing purposes
+
         for row in reader:
+
             album_title = row[5]
+            # artist first and last name if present
             artist = row[1] + " " + row[2] if row[1] else row[2]
-            
+
             print(str(count) + ": ")
 
             query = album_title + ", " + artist
             print("query: " + query)
 
-            payload = {'q': f'{album_title}%2520artist%3A{artist}', 'type': 'album', 'limit': 1}
-            headers = {"Authorization": "Bearer " + current_token["access_token"]}
+            # get the first three albums resulting from query q
+            payload = {
+                    'q': f'{album_title}%2520artist%3A{artist}',
+                    'type': 'album',
+                    'limit': 3
+                    }
+            headers = {
+                    "Authorization": "Bearer " + current_token["access_token"]
+                    }
             r = requests.get(BASE_URL + '/search', params=payload, headers=headers)
-            if r.status_code == 200:
-                #payload = {'q': f'BCD%2520artist%3ABasic Channel', 'type': 'album', 'limit': 3}
-                #headers = {"Authorization": "Bearer " + current_token["access_token"]}
-                #r = requests.get(BASE_URL + '/search', params=payload, headers=headers)
-                #print([item['name'] for item in json.loads(r.text)['albums']['items']])
-                res = json.loads(r.text)['albums']['items'][0]['name'] + ', ' + json.loads(r.text)['albums']['items'][0]['artists'][0]['name']
-                print(res)
-                if res.lower() == query.lower():
-                    album_id = json.loads(r.text)['albums']['items'][0]['id']
-                    r = requests.get(BASE_URL + f'/albums/{album_id}/tracks', headers=headers)
-                    track_uris = [f'spotify:track:{item["id"]}' for item in json.loads(r.text)['items']]
-                    uris_dict = {'uris': track_uris}
-                    uris_json = json.dumps(uris_dict)
-                    print(uris_json)
-                    headers = {
-                            "Authorization": "Bearer " + current_token["access_token"],
-                            "Content-Type": "application/json"
-                            }
 
-                    r = requests.post(BASE_URL + f'/playlists/{playlist_id}/tracks', headers=headers, data=uris_json)
+            if r.status_code == 200:
+
+                res = json.loads(r.text)['albums']['items']
+                
+                match_count = 0
+                for album in res:
+
+                    if album['name'].lower() == album_title.lower() and album['artists'][0]['name'].lower() == artist.lower():
+
+                        print('match:', album['name'] + ', ' + album['artists'][0]['name'])
+                        album_id = album['id']
+                        print(album_id)
+                        r = requests.get(BASE_URL + f'/albums/{album_id}/tracks', headers=headers)
+                        track_uris = [f'spotify:track:{item["id"]}' for item in json.loads(r.text)['items']]
+                        uris_dict = {'uris': track_uris}
+                        uris_json = json.dumps(uris_dict)
+                        headers = {
+                                "Authorization": "Bearer " + current_token["access_token"],
+                                "Content-Type": "application/json"
+                                }
+                        r = requests.post(BASE_URL + f'/playlists/{playlist_id}/tracks', headers=headers, data=uris_json)
+                        match_count += 1
+                        break
+
             else:
                 print(json.loads(r.text)['error']['message'])
-            
-            count += 1
+
+            count += 1  # for printing purposes only
+
+        print(match_count/count)
 
 
 if __name__ == "__main__":
-
     if len(sys.argv) != 2:
         print("Exactly one argument for the rym export filename is required.")
         print("e.g., python3 rym-spotify-sync.py <filename>")
