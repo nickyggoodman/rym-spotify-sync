@@ -19,6 +19,7 @@ import urllib
 import requests
 from urllib.parse import urlparse
 import json
+import re
 
 BASE_URL = 'https://api.spotify.com/v1'
 
@@ -157,21 +158,22 @@ def add_albums(access_token, csv_filename, playlist_id):
     with open(csv_filename, newline='') as csvfile:
         reader = csv.reader(csvfile)
         count = 1  # for printing purposes
+        match_count = 0
 
         for row in reader:
 
-            album_title = row[5]
+            q_album_title = row[5]
             # artist first and last name if present
-            artist = row[1] + " " + row[2] if row[1] else row[2]
+            q_artist = row[1] + " " + row[2] if row[1] else row[2]
 
             print(str(count) + ": ")
 
-            query = album_title + ", " + artist
+            query = q_album_title + ", " + q_artist
             print("query: " + query)
 
             # get the first three albums resulting from query q
             payload = {
-                    'q': f'{album_title}%2520artist%3A{artist}',
+                    'q': f'{q_album_title} artist:{q_artist}',
                     'type': 'album',
                     'limit': 3
                     }
@@ -183,17 +185,25 @@ def add_albums(access_token, csv_filename, playlist_id):
             if r.status_code == 200:
 
                 res = json.loads(r.text)['albums']['items']
-                
-                match_count = 0
+
                 for album in res:
+                    album_title = album['name']
+                    m = re.search(r" \(.*((r|R)emaster|(E|e)dition|(L|l)ive|(D|d)eluxe).*\)", album_title)
+                    if m:
+                        print('REMASTERED MATCH: ' + m.group())
+                        album_title = album_title.replace(m.group(), '')
+                    artist = album['artists'][0]['name']
+                    # print("q title: " + q_album_title)
+                    # print("result title: " + album_title)
+                    # print("q artist: " + q_artist)
+                    # print("result artist: " + artist)
 
-                    if album['name'].lower() == album_title.lower() and album['artists'][0]['name'].lower() == artist.lower():
+                    if album_title.lower() == q_album_title.lower() and artist.lower() == q_artist.lower():
 
-                        print('match:', album['name'] + ', ' + album['artists'][0]['name'])
+                        print('match:', album_title + ', ' + artist)
                         album_id = album['id']
-                        print(album_id)
                         r = requests.get(BASE_URL + f'/albums/{album_id}/tracks', headers=headers)
-                        track_uris = [f'spotify:track:{item["id"]}' for item in json.loads(r.text)['items']]
+                        track_uris = [f'spotify:track:{track["id"]}' for track in json.loads(r.text)['items']]
                         uris_dict = {'uris': track_uris}
                         uris_json = json.dumps(uris_dict)
                         headers = {
@@ -202,14 +212,17 @@ def add_albums(access_token, csv_filename, playlist_id):
                                 }
                         r = requests.post(BASE_URL + f'/playlists/{playlist_id}/tracks', headers=headers, data=uris_json)
                         match_count += 1
+                        print(match_count)
                         break
+                
 
             else:
                 print(json.loads(r.text)['error']['message'])
 
             count += 1  # for printing purposes only
 
-        print(match_count/count)
+        print(str(match_count) + "/" + str(count))
+
 
 
 if __name__ == "__main__":
