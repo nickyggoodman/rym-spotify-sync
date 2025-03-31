@@ -7,6 +7,7 @@ user in RYM. A total of 11 playlists are made. One for unrated albums (albums
 with a rating of 0) and ten for albums rating 1 through 10.
 '''
 
+import datetime
 import csv
 import sys
 from http import server
@@ -109,7 +110,6 @@ def request_access_token():
 def generate_rym_playlist(current_token):
 
     if not get_playlist_id(current_token):
-        print('GENERATING PLAYLIST')
         headers = {"Authorization": "Bearer " + current_token["access_token"]}
 
         r = requests.get(BASE_URL + "/me", headers=headers)
@@ -123,7 +123,6 @@ def generate_rym_playlist(current_token):
         r = requests.post(BASE_URL + f'/users/{current_user["id"]}/playlists',
                           headers=headers,
                           data=json.dumps(data))
-        # print(r.text)
 
         headers = {
                     "Authorization": "Bearer " + current_token["access_token"],
@@ -166,16 +165,17 @@ def add_albums(access_token, csv_filename, playlist_id):
             # artist first and last name if present
             q_artist = row[1] + " " + row[2] if row[1] else row[2]
 
-            print(str(count) + ": ")
+            # print(str(count) + ": ")
 
             query = q_album_title + ", " + q_artist
-            print("query: " + query)
+            # print("query: " + query)
+            # print("")
 
             # get the first three albums resulting from query q
             payload = {
                     'q': f'{q_album_title} artist:{q_artist}',
                     'type': 'album',
-                    'limit': 3
+                    'limit': 2
                     }
             headers = {
                     "Authorization": "Bearer " + current_token["access_token"]
@@ -190,17 +190,19 @@ def add_albums(access_token, csv_filename, playlist_id):
                     album_title = album['name']
                     m = re.search(r" \(.*((r|R)emaster|(E|e)dition|(L|l)ive|(D|d)eluxe).*\)", album_title)
                     if m:
-                        print('REMASTERED MATCH: ' + m.group())
+                        # print('REMASTERED MATCH: ' + m.group())
                         album_title = album_title.replace(m.group(), '')
                     artist = album['artists'][0]['name']
                     # print("q title: " + q_album_title)
                     # print("result title: " + album_title)
                     # print("q artist: " + q_artist)
                     # print("result artist: " + artist)
+                    # print("")
 
                     if album_title.lower() == q_album_title.lower() and artist.lower() == q_artist.lower():
 
-                        print('match:', album_title + ', ' + artist)
+                        # print('match:', album_title + ', ' + artist)
+                        # print("")
                         album_id = album['id']
                         r = requests.get(BASE_URL + f'/albums/{album_id}/tracks', headers=headers)
                         track_uris = [f'spotify:track:{track["id"]}' for track in json.loads(r.text)['items']]
@@ -212,12 +214,13 @@ def add_albums(access_token, csv_filename, playlist_id):
                                 }
                         r = requests.post(BASE_URL + f'/playlists/{playlist_id}/tracks', headers=headers, data=uris_json)
                         match_count += 1
-                        print(match_count)
                         break
                 
 
             else:
                 print(json.loads(r.text)['error']['message'])
+
+            # print("")
 
             count += 1  # for printing purposes only
 
@@ -238,7 +241,10 @@ if __name__ == "__main__":
     generate_rym_playlist(current_token)
     playlist_id = get_playlist_id(current_token)
 
+    begin = datetime.datetime.now()
     add_albums(current_token, filename, playlist_id)
-
+    end = datetime.datetime.now()
+    print("time to add albums:")
+    print(end - begin)
 
 
