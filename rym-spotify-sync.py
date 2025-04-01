@@ -6,11 +6,11 @@ adding each album to a Spotify playlist based on the rating it was given by the
 user in RYM. A total of 11 playlists are made. One for unrated albums (albums
 with a rating of 0) and ten for albums rating 1 through 10.
 '''
-
+import logging
+import survey
 import datetime
 import csv
 import sys
-from http import server
 import string
 import secrets  # "suitable for managing data such as [...] account auth"
 import hashlib
@@ -18,9 +18,11 @@ import base64
 import webbrowser
 import urllib
 import requests
-from urllib.parse import urlparse
 import json
 import re
+from urllib.parse import urlparse
+from http import server
+
 
 BASE_URL = 'https://api.spotify.com/v1'
 
@@ -48,6 +50,11 @@ class SimpleHTTPRequestHandler(server.BaseHTTPRequestHandler):
         code = query_components['code']
         self.send_response(200)
         self.end_headers()
+        
+
+    def log_message(self, format, *args):
+        pass
+
 
 
 def run_server(server_class=server.HTTPServer, handler_class=SimpleHTTPRequestHandler):
@@ -152,75 +159,78 @@ def get_playlist_id(current_token):
 
 
 # adds albums to the generated playlist, or existing playlist
-def add_albums(access_token, csv_filename, playlist_id):
+def add_albums(access_token, csv_filename, playlist_id, min_rating):
 
     with open(csv_filename, newline='') as csvfile:
         reader = csv.reader(csvfile)
-        count = 1  # for printing purposes
+        count = 0  # for printing purposes
         match_count = 0
 
         for row in reader:
 
-            q_album_title = row[5]
-            # artist first and last name if present
-            q_artist = row[1] + " " + row[2] if row[1] else row[2]
+            if count > 0 and row[7] >= str(min_rating): 
 
-            # print(str(count) + ": ")
+                q_album_title = row[5]
+                # artist first and last name if present
+                q_artist = row[1] + " " + row[2] if row[1] else row[2]
 
-            query = q_album_title + ", " + q_artist
-            # print("query: " + query)
-            # print("")
+                # print(str(count) + ": ")
 
-            # get the first three albums resulting from query q
-            payload = {
-                    'q': f'{q_album_title} artist:{q_artist}',
-                    'type': 'album',
-                    'limit': 2
-                    }
-            headers = {
-                    "Authorization": "Bearer " + current_token["access_token"]
-                    }
-            r = requests.get(BASE_URL + '/search', params=payload, headers=headers)
+                query = q_album_title + ", " + q_artist
+                # print("query: " + query)
+                # print("")
 
-            if r.status_code == 200:
+                # get the first three albums resulting from query q
+                payload = {
+                        'q': f'{q_album_title} artist:{q_artist}',
+                        'type': 'album',
+                        'limit': 2
+                        }
+                headers = {
+                        "Authorization": "Bearer " + current_token["access_token"]
+                        }
+                r = requests.get(BASE_URL + '/search', params=payload, headers=headers)
 
-                res = json.loads(r.text)['albums']['items']
+                if r.status_code == 200:
 
-                for album in res:
-                    album_title = album['name']
-                    m = re.search(r" \(.*((r|R)emaster|(E|e)dition|(L|l)ive|(D|d)eluxe).*\)", album_title)
-                    if m:
-                        # print('REMASTERED MATCH: ' + m.group())
-                        album_title = album_title.replace(m.group(), '')
-                    artist = album['artists'][0]['name']
-                    # print("q title: " + q_album_title)
-                    # print("result title: " + album_title)
-                    # print("q artist: " + q_artist)
-                    # print("result artist: " + artist)
-                    # print("")
+                    res = json.loads(r.text)['albums']['items']
 
-                    if album_title.lower() == q_album_title.lower() and artist.lower() == q_artist.lower():
-
-                        # print('match:', album_title + ', ' + artist)
+                    for album in res:
+                        album_title = album['name']
+                        m = re.search(r" \(.*((r|R)emaster|(E|e)dition|(L|l)ive|(D|d)eluxe).*\)", album_title)
+                        if m:
+                            # print('REMASTERED MATCH: ' + m.group())
+                            album_title = album_title.replace(m.group(), '')
+                        artist = album['artists'][0]['name']
+                        # print("q title: " + q_album_title)
+                        # print("result title: " + album_title)
+                        # print("q artist: " + q_artist)
+                        # print("result artist: " + artist)
                         # print("")
-                        album_id = album['id']
-                        r = requests.get(BASE_URL + f'/albums/{album_id}/tracks', headers=headers)
-                        track_uris = [f'spotify:track:{track["id"]}' for track in json.loads(r.text)['items']]
-                        uris_dict = {'uris': track_uris}
-                        uris_json = json.dumps(uris_dict)
-                        headers = {
-                                "Authorization": "Bearer " + current_token["access_token"],
-                                "Content-Type": "application/json"
-                                }
-                        r = requests.post(BASE_URL + f'/playlists/{playlist_id}/tracks', headers=headers, data=uris_json)
-                        match_count += 1
-                        break
-                
 
-            else:
-                print(json.loads(r.text)['error']['message'])
+                        if album_title.lower() == q_album_title.lower() and artist.lower() == q_artist.lower():
 
-            # print("")
+                            # print('match:', album_title + ', ' + artist)
+                            # print("")
+                            album_id = album['id']
+                            r = requests.get(BASE_URL + f'/albums/{album_id}/tracks', headers=headers)
+                            track_uris = [f'spotify:track:{track["id"]}' for track in json.loads(r.text)['items']]
+                            uris_dict = {'uris': track_uris}
+                            uris_json = json.dumps(uris_dict)
+                            headers = {
+                                    "Authorization": "Bearer " + current_token["access_token"],
+                                    "Content-Type": "application/json"
+                                    }
+                            r = requests.post(BASE_URL + f'/playlists/{playlist_id}/tracks', headers=headers, data=uris_json)
+                            match_count += 1
+                            break
+                    
+
+                else:
+                    print(json.loads(r.text)['error']['message'])
+                    print('query: ', query)
+
+                # print("")
 
             count += 1  # for printing purposes only
 
@@ -236,13 +246,22 @@ if __name__ == "__main__":
 
     filename = sys.argv[1]
 
+    print('Authorize this tool through your browser.')
+
+
     current_token = request_access_token()
 
     generate_rym_playlist(current_token)
     playlist_id = get_playlist_id(current_token)
 
+    print('What minimum rating should albums have to be transferred (0 - 10)?')
+    min_rating = survey.routines.numeric('Rating threshold: ', decimal=False, value=6)
+    while min_rating > 10 or min_rating < 0:
+        print('enter value 0 - 10')
+        min_rating = survey.routines.numeric('Rating threshold: ', decimal=False)
+
     begin = datetime.datetime.now()
-    add_albums(current_token, filename, playlist_id)
+    add_albums(current_token, filename, playlist_id, min_rating)
     end = datetime.datetime.now()
     print("time to add albums:")
     print(end - begin)
