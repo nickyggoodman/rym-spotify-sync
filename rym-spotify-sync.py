@@ -6,7 +6,6 @@ adding each album to a Spotify playlist based on the rating it was given by the
 user in RYM. A total of 11 playlists are made. One for unrated albums (albums
 with a rating of 0) and ten for albums rating 1 through 10.
 '''
-import logging
 import survey
 import datetime
 import csv
@@ -117,6 +116,7 @@ def request_access_token():
 def generate_rym_playlist(current_token):
 
     if not get_playlist_id(current_token):
+        
         headers = {"Authorization": "Bearer " + current_token["access_token"]}
 
         r = requests.get(BASE_URL + "/me", headers=headers)
@@ -142,6 +142,7 @@ def generate_rym_playlist(current_token):
             r = requests.put(BASE_URL + f'/playlists/{playlist_info["id"]}/images',
                              headers=headers,
                              data=base64_bytes)
+        survey.printers.done('Generate RYM playlist')
 
 
 # get the playlist id if it exists, otherwise return an empty string
@@ -163,22 +164,19 @@ def add_albums(access_token, csv_filename, playlist_id, min_rating):
 
     with open(csv_filename, newline='') as csvfile:
         reader = csv.reader(csvfile)
-        count = 0  # for printing purposes
-        match_count = 0
+        next(reader)
 
+        albums = []
         for row in reader:
+            if int(row[7]) >= min_rating:
+                albums.append({'album_title': row[5], 'artist': row[1] + " " + row[2] if row[1] else row[2]})
 
-            if count > 0 and row[7] >= str(min_rating): 
+        with survey.graphics.LineProgress(len(albums), prefix='Adding albums to RYM playlist', epilogue='done!') as progress:
 
-                q_album_title = row[5]
+            for i in albums:
+                q_album_title = i['album_title']
                 # artist first and last name if present
-                q_artist = row[1] + " " + row[2] if row[1] else row[2]
-
-                # print(str(count) + ": ")
-
-                query = q_album_title + ", " + q_artist
-                # print("query: " + query)
-                # print("")
+                q_artist = i['artist']
 
                 # get the first three albums resulting from query q
                 payload = {
@@ -199,14 +197,8 @@ def add_albums(access_token, csv_filename, playlist_id, min_rating):
                         album_title = album['name']
                         m = re.search(r" \(.*((r|R)emaster|(E|e)dition|(L|l)ive|(D|d)eluxe).*\)", album_title)
                         if m:
-                            # print('REMASTERED MATCH: ' + m.group())
                             album_title = album_title.replace(m.group(), '')
                         artist = album['artists'][0]['name']
-                        # print("q title: " + q_album_title)
-                        # print("result title: " + album_title)
-                        # print("q artist: " + q_artist)
-                        # print("result artist: " + artist)
-                        # print("")
 
                         if album_title.lower() == q_album_title.lower() and artist.lower() == q_artist.lower():
 
@@ -222,20 +214,13 @@ def add_albums(access_token, csv_filename, playlist_id, min_rating):
                                     "Content-Type": "application/json"
                                     }
                             r = requests.post(BASE_URL + f'/playlists/{playlist_id}/tracks', headers=headers, data=uris_json)
-                            match_count += 1
                             break
-                    
 
                 else:
-                    print(json.loads(r.text)['error']['message'])
-                    print('query: ', query)
 
-                # print("")
+                    print('Error:', json.loads(r.text)['error']['message'])
 
-            count += 1  # for printing purposes only
-
-        print(str(match_count) + "/" + str(count))
-
+                progress.move(1)
 
 
 if __name__ == "__main__":
@@ -246,24 +231,23 @@ if __name__ == "__main__":
 
     filename = sys.argv[1]
 
-    print('Authorize this tool through your browser.')
-
+    survey.printers.info('Authorize this tool through your browser...')
 
     current_token = request_access_token()
 
-    generate_rym_playlist(current_token)
-    playlist_id = get_playlist_id(current_token)
-
-    print('What minimum rating should albums have to be transferred (0 - 10)?')
-    min_rating = survey.routines.numeric('Rating threshold: ', decimal=False, value=6)
+    # select the minimum rating an album should have to be added to spotify
+    min_rating = survey.routines.numeric('What minimum rating should albums have to be transferred (0 - 10)? ', decimal=False, value=6)
     while min_rating > 10 or min_rating < 0:
         print('enter value 0 - 10')
-        min_rating = survey.routines.numeric('Rating threshold: ', decimal=False)
+        min_rating = survey.routines.numeric('Rating threshold: ', decimal=False, value=6)
 
-    begin = datetime.datetime.now()
-    add_albums(current_token, filename, playlist_id, min_rating)
-    end = datetime.datetime.now()
-    print("time to add albums:")
-    print(end - begin)
+    # options for how we add and sort music from rym file
+    options = ('create rym playlist',
+               'add albums to library')
+    indexes = survey.routines.basket('how would you like your music added?', options=options)
+    if 0 in indexes:
+        generate_rym_playlist(current_token)
+        playlist_id = get_playlist_id(current_token)
+        add_albums(current_token, filename, playlist_id, min_rating)
 
 
