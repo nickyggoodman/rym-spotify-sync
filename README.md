@@ -26,8 +26,11 @@ utilize their API to make it easier to use (and perhaps have automatic updates)
 * run rym-spotify-sync.py with the path to your csv file as an argument
 ``` python3 rym-spotify-sync.py path/to/your/exportcsv ``` 
 * authorize rym-spotify-sync to use your Spotify data
-  - new tab should open in
+  - a new tab should open in
   your browser if your browser is already open, otherwise a new window will open.
+  - read the required permissions, accept, you will be redirected to a blank page.
+  - close the tab
+* answer the prompts in your console
 
 ## Installation
 
