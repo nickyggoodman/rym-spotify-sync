@@ -33,9 +33,9 @@ utilize their API to make it easier to use (and perhaps have automatic updates)
 * answer the prompts in your console
 
 ## Installation
-* clone the repository
+* clone the repository\
 ``` git clone https://github.com/nickyggoodman/rym-spotify-sync.git ```
-* install the necessary packages
+* install the necessary packages\
 ``` pip install -r requirements.txt ```
 
 ## Feedback
