@@ -23,7 +23,7 @@ utilize their API to make it easier to use (and perhaps have automatic updates)
 
 ## Usage
 * [Export your music](https://rateyourmusic.com/music_export) from RateYourMusic
-* run python script with path to your csv file
+* run rym-spotify-sync.py with path to your csv file as an argument
 ``` python3 rym-spotify-sync.py path/to/your/exportcsv ``` 
 
 ## Installation
