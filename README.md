@@ -2,7 +2,7 @@
 
 ## Highlights
 * add all your rated albums/tracks to a your own playlist
-* add all your rated albums to your user libarary
+* add all your rated albums to your user library
 * filter by rating (0 - 10)
 
 ## Overview
@@ -23,8 +23,11 @@ utilize their API to make it easier to use (and perhaps have automatic updates)
 
 ## Usage
 * [Export your music](https://rateyourmusic.com/music_export) from RateYourMusic
-* run rym-spotify-sync.py with path to your csv file as an argument
+* run rym-spotify-sync.py with the path to your csv file as an argument
 ``` python3 rym-spotify-sync.py path/to/your/exportcsv ``` 
+* authorize rym-spotify-sync to use your Spotify data
+        - new tab should open in
+your browser if your browser is already open, otherwise a new window will open.
 
 ## Installation
 
