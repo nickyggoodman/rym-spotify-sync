@@ -22,6 +22,9 @@ this program requires an export of your ratings. However, in the future I hope t
 utilize their API to make it easier to use (and perhaps have automatic updates)
 
 ## Usage
+* [Export your music](https://rateyourmusic.com/music_export) from RateYourMusic
+* run python script with path to your csv file
+``` python3 rym-spotify-sync.py path/to/your/exportcsv ``` 
 
 ## Installation
 
