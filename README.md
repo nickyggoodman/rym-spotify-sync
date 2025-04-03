@@ -24,7 +24,7 @@ utilize their API to make it easier to use (and perhaps have automatic updates)
 ## Usage
 * [Export your music](https://rateyourmusic.com/music_export) from RateYourMusic
 * run rym-spotify-sync.py with the path to your csv file as an argument\
-``` python3 rym-spotify-sync.py path/to/your/exportcsv ``` 
+``` python3 rym-spotify-sync.py path/to/your/export.csv ``` 
 * authorize rym-spotify-sync to use your Spotify data
   - a new tab should open in
   your browser if your browser is already open, otherwise a new window will open.
