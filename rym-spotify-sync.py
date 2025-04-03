@@ -29,7 +29,7 @@ CLIENT_ID = '58a65635db43470fa773cba91b820b49'
 
 AUTHORIZATION_ENDPOINT = 'https://accounts.spotify.com/authorize'
 TOKEN_ENDPOINT = 'https://accounts.spotify.com/api/token'
-SCOPE = 'user-read-private playlist-read-private playlist-modify-public playlist-modify-private ugc-image-upload'
+SCOPE = 'user-read-private playlist-read-private playlist-modify-public playlist-modify-private ugc-image-upload user-library-modify'
 
 running = True
 code = ''
@@ -48,11 +48,9 @@ class SimpleHTTPRequestHandler(server.BaseHTTPRequestHandler):
         code = query_components['code']
         self.send_response(200)
         self.end_headers()
-        
 
     def log_message(self, format, *args):
         pass
-
 
 
 def run_server(server_class=server.HTTPServer, handler_class=SimpleHTTPRequestHandler):
@@ -157,8 +155,91 @@ def get_playlist_id(current_token):
     return ''
 
 
+def get_album_id(current_token, album_title, album_artist):
+
+    # get the first two albums resulting for the search query q
+    payload = {
+            'q': f'{album_title} artist:{album_artist}',
+            'type': 'album',
+            'limit': 2
+            }
+    headers = {
+            "Authorization": "Bearer " + current_token["access_token"]
+            }
+    r = requests.get(BASE_URL + '/search',
+                     params=payload,
+                     headers=headers)
+
+    # if there was no issue with our request
+    if r.status_code == 200:
+
+        # get the resulting most relavent albums to match (num=limit)
+        res = json.loads(r.text)['albums']['items']
+
+        # get the first matching album from the search results
+        for album in res:
+
+            # get the album title without the extraneous labels like
+            # 'remaster', 'deluxe', 'live', 'edition'
+            res_title = album['name']
+            m = re.search(r" \(.*((r|R)emaster|(E|e)dition|(L|l)ive|(D|d)eluxe).*\)", res_title)
+            if m:
+                res_title = res_title.replace(m.group(), '')
+            # get the artist
+            res_artist = album['artists'][0]['name']
+
+            if res_title.lower() == album_title.lower() and res_artist.lower() == album_artist.lower():
+
+                # get track uris from the album
+                return album['id']
+
+    return ''
+
+
+def add_albums_to_library(current_token, csv_filename, min_rating):
+
+    with open(csv_filename, newline='') as csvfile:
+        reader = csv.reader(csvfile)
+        next(reader)  # skip the first line containing labels
+
+        # populate list with  albums above minimum rating
+        albums = []
+        for row in reader:
+            if int(row[7]) >= min_rating:
+                albums.append({
+                    'album_title': row[5],
+                    'album_artist': row[1] + " " + row[2] if row[1] else row[2]
+                    })
+
+
+        with survey.graphics.SpinProgress(prefix='Getting album ids', epilogue='Album ids retrieved') as progress:        
+            # create a list of album ids to pass to api
+            album_ids = []
+            for i in albums:
+                album_id = get_album_id(current_token, i['album_title'], i['album_artist'])
+                if album_id:
+                    album_ids.append(album_id)
+
+        headers = {
+                "Authorization": "Bearer " + current_token["access_token"],
+                "Content-Type": "application/json"
+                }
+
+
+        with survey.graphics.SpinProgress(prefix='Batch adding albums', epilogue='Albums added to user library') as progress:        
+            # adding albums in chunks of 20
+            i = 0
+            j = 20 if 20 < len(album_ids) else len(album_ids)
+            while i < j:
+                album_ids_dict = {'ids': album_ids[i:j]}
+                album_ids_json = json.dumps(album_ids_dict)
+                r = requests.put(BASE_URL + '/me/albums', headers=headers, data=album_ids_json)
+                j = j + 20 if j + 20 < len(album_ids) else len(album_ids)
+                i = i + 20 if i + 20 < len(album_ids) else len(album_ids)
+
+
 # adds albums to the generated playlist, or existing playlist
-def add_albums(access_token, csv_filename, playlist_id, min_rating):
+def add_albums_to_playlist(access_token, csv_filename, playlist_id, min_rating):
 
     with open(csv_filename, newline='') as csvfile:
         reader = csv.reader(csvfile)
@@ -168,57 +249,33 @@ def add_albums(access_token, csv_filename, playlist_id, min_rating):
         albums = []
         for row in reader:
             if int(row[7]) >= min_rating:
-                albums.append({'album_title': row[5], 'artist': row[1] + " " + row[2] if row[1] else row[2]})
+                albums.append({
+                    'album_title': row[5],
+                    'album_artist': row[1] + " " + row[2] if row[1] else row[2]
+                    })
 
         # use a loading bar to indicate progress to user
         with survey.graphics.LineProgress(len(albums), prefix='Adding albums to RYM playlist', epilogue='done!') as progress:
 
             for i in albums:
-                q_album_title = i['album_title']
-                # artist first and last name if present
-                q_artist = i['artist']
 
-                # get the first three albums resulting from query q
-                payload = {
-                        'q': f'{q_album_title} artist:{q_artist}',
-                        'type': 'album',
-                        'limit': 2
-                        }
-                headers = {
-                        "Authorization": "Bearer " + current_token["access_token"]
-                        }
-                r = requests.get(BASE_URL + '/search', params=payload, headers=headers)
+                # get album title and artist for the search query q
+                album_id = get_album_id(current_token, i['album_title'], i['album_artist'])
+                if album_id:
+                    headers = {
+                            "Authorization": "Bearer " + current_token["access_token"]
+                            }
+                    r = requests.get(BASE_URL + f'/albums/{album_id}/tracks', headers=headers)
+                    track_uris = [f'spotify:track:{track["id"]}' for track in json.loads(r.text)['items']]
+                    uris_dict = {'uris': track_uris}
+                    uris_json = json.dumps(uris_dict)
 
-                if r.status_code == 200:
-
-                    res = json.loads(r.text)['albums']['items']
-
-                    for album in res:
-                        album_title = album['name']
-                        m = re.search(r" \(.*((r|R)emaster|(E|e)dition|(L|l)ive|(D|d)eluxe).*\)", album_title)
-                        if m:
-                            album_title = album_title.replace(m.group(), '')
-                        artist = album['artists'][0]['name']
-
-                        if album_title.lower() == q_album_title.lower() and artist.lower() == q_artist.lower():
-
-                            # print('match:', album_title + ', ' + artist)
-                            # print("")
-                            album_id = album['id']
-                            r = requests.get(BASE_URL + f'/albums/{album_id}/tracks', headers=headers)
-                            track_uris = [f'spotify:track:{track["id"]}' for track in json.loads(r.text)['items']]
-                            uris_dict = {'uris': track_uris}
-                            uris_json = json.dumps(uris_dict)
-                            headers = {
-                                    "Authorization": "Bearer " + current_token["access_token"],
-                                    "Content-Type": "application/json"
-                                    }
-                            r = requests.post(BASE_URL + f'/playlists/{playlist_id}/tracks', headers=headers, data=uris_json)
-                            break
-
-                else:
-
-                    print('Error:', json.loads(r.text)['error']['message'])
+                    # add the tracks to the playlist
+                    headers = {
+                            "Authorization": "Bearer " + current_token["access_token"],
+                            "Content-Type": "application/json"
+                            }
+                    r = requests.post(BASE_URL + f'/playlists/{playlist_id}/tracks', headers=headers, data=uris_json)
 
                 progress.move(1)
 
@@ -248,6 +305,8 @@ if __name__ == "__main__":
     if 0 in indexes:
         generate_rym_playlist(current_token)
         playlist_id = get_playlist_id(current_token)
-        add_albums(current_token, filename, playlist_id, min_rating)
+        add_albums_to_playlist(current_token, filename, playlist_id, min_rating)
+    if 1 in indexes:
+        add_albums_to_library(current_token, filename, min_rating)
 
 
