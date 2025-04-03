@@ -7,7 +7,6 @@ user in RYM. A total of 11 playlists are made. One for unrated albums (albums
 with a rating of 0) and ten for albums rating 1 through 10.
 '''
 import survey
-import datetime
 import csv
 import sys
 import string
@@ -116,33 +115,32 @@ def request_access_token():
 def generate_rym_playlist(current_token):
 
     if not get_playlist_id(current_token):
-        
-        headers = {"Authorization": "Bearer " + current_token["access_token"]}
+        with survey.graphics.SpinProgress(prefix='Creating RYM playlist', epilogue='RYM playlist created!') as progress:        
+            headers = {"Authorization": "Bearer " + current_token["access_token"]}
 
-        r = requests.get(BASE_URL + "/me", headers=headers)
-        current_user = json.loads(r.text)
+            r = requests.get(BASE_URL + "/me", headers=headers)
+            current_user = json.loads(r.text)
 
-        data = {'name': 'rym'}
-        headers = {
-                    "Authorization": "Bearer " + current_token["access_token"],
-                    'Content-Type': 'application/json'
-                }
-        r = requests.post(BASE_URL + f'/users/{current_user["id"]}/playlists',
-                          headers=headers,
-                          data=json.dumps(data))
+            data = {'name': 'rym'}
+            headers = {
+                        "Authorization": "Bearer " + current_token["access_token"],
+                        'Content-Type': 'application/json'
+                    }
+            r = requests.post(BASE_URL + f'/users/{current_user["id"]}/playlists',
+                              headers=headers,
+                              data=json.dumps(data))
 
-        headers = {
-                    "Authorization": "Bearer " + current_token["access_token"],
-                    'Content-Type': 'image/jpeg'
-                }
-        playlist_info = json.loads(r.text)
-        with open('sonemic.jpeg', 'rb') as image_file:
-            base64_bytes = base64.b64encode(image_file.read())
+            headers = {
+                        "Authorization": "Bearer " + current_token["access_token"],
+                        'Content-Type': 'image/jpeg'
+                    }
+            playlist_info = json.loads(r.text)
+            with open('sonemic.jpeg', 'rb') as image_file:
+                base64_bytes = base64.b64encode(image_file.read())
 
-            r = requests.put(BASE_URL + f'/playlists/{playlist_info["id"]}/images',
-                             headers=headers,
-                             data=base64_bytes)
-        survey.printers.done('Generate RYM playlist')
+                r = requests.put(BASE_URL + f'/playlists/{playlist_info["id"]}/images',
+                                 headers=headers,
+                                 data=base64_bytes)
 
 
 # get the playlist id if it exists, otherwise return an empty string
@@ -164,13 +162,15 @@ def add_albums(access_token, csv_filename, playlist_id, min_rating):
 
     with open(csv_filename, newline='') as csvfile:
         reader = csv.reader(csvfile)
-        next(reader)
+        next(reader)  # skip the first line containing labels
 
+        # populate list albums above minimum rating
         albums = []
         for row in reader:
             if int(row[7]) >= min_rating:
                 albums.append({'album_title': row[5], 'artist': row[1] + " " + row[2] if row[1] else row[2]})
 
+        # use a loading bar to indicate progress to user
         with survey.graphics.LineProgress(len(albums), prefix='Adding albums to RYM playlist', epilogue='done!') as progress:
 
             for i in albums:
@@ -242,7 +242,7 @@ if __name__ == "__main__":
         min_rating = survey.routines.numeric('Rating threshold: ', decimal=False, value=6)
 
     # options for how we add and sort music from rym file
-    options = ('create rym playlist',
+    options = ('add songs to rym playlist',
                'add albums to library')
     indexes = survey.routines.basket('how would you like your music added?', options=options)
     if 0 in indexes:
