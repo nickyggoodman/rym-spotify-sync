@@ -29,7 +29,11 @@ CLIENT_ID = '58a65635db43470fa773cba91b820b49'
 
 AUTHORIZATION_ENDPOINT = 'https://accounts.spotify.com/authorize'
 TOKEN_ENDPOINT = 'https://accounts.spotify.com/api/token'
-SCOPE = 'user-read-private playlist-read-private playlist-modify-public playlist-modify-private ugc-image-upload user-library-modify'
+SCOPE = ('user-read-private ' +
+         'playlist-read-private ' +
+         'playlist-modify-public ' +
+         'playlist-modify-private ' +
+         'ugc-image-upload user-library-modify')
 
 running = True
 code = ''
@@ -170,6 +174,7 @@ def get_album_id(current_token, album_title, album_artist):
                      params=payload,
                      headers=headers)
 
+    album_id = ''
     # if there was no issue with our request
     if r.status_code == 200:
 
@@ -177,23 +182,26 @@ def get_album_id(current_token, album_title, album_artist):
         res = json.loads(r.text)['albums']['items']
 
         # get the first matching album from the search results
-        for album in res:
+        i = 0
+        while not album_id and i < len(res):
 
             # get the album title without the extraneous labels like
             # 'remaster', 'deluxe', 'live', 'edition'
-            res_title = album['name']
+            res_title = res[i]['name']
             m = re.search(r" \(.*((r|R)emaster|(E|e)dition|(L|l)ive|(D|d)eluxe).*\)", res_title)
             if m:
                 res_title = res_title.replace(m.group(), '')
             # get the artist
-            res_artist = album['artists'][0]['name']
+            res_artist = res[i]['artists'][0]['name']
 
             if res_title.lower() == album_title.lower() and res_artist.lower() == album_artist.lower():
 
                 # get track uris from the album
-                return album['id']
+                album_id = res[i]['id']
 
-    return ''
+            i += 1
+
+    return album_id
 
 
 def add_albums_to_library(current_token, csv_filename, min_rating):
