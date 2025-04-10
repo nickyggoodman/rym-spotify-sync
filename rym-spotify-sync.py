@@ -1,16 +1,15 @@
-'''
-Author: Nicholas G Goodman
+"""Syncs RateYourMusic (Sonemic) ratings with Spotify using RYM export csv
 
-This script syncronizes a user's Rate Your Music (RYM) ratings with Spotify by
-adding each album to a Spotify playlist based on the rating it was given by the
-user in RYM. A total of 11 playlists are made. One for unrated albums (albums
-with a rating of 0) and ten for albums rating 1 through 10.
-'''
+This program syncronizes a user's Rate Your Music (RYM) ratings with Spotify by
+adding each album over a user-input threshold rating to optionally a playlist
+or optionally to their user library.
+"""
+
 import survey
 import csv
 import sys
 import string
-import secrets  # "suitable for managing data such as [...] account auth"
+import secrets  # "suitable for managing data such as... account auth"
 import hashlib
 import base64
 import webbrowser
@@ -24,6 +23,7 @@ from http import server
 
 BASE_URL = 'https://api.spotify.com/v1'
 
+# Specific to this application
 REDIRECT_URL = 'http://localhost:3000/callback'
 CLIENT_ID = '58a65635db43470fa773cba91b820b49'
 
@@ -33,7 +33,8 @@ SCOPE = ('user-read-private ' +
          'playlist-read-private ' +
          'playlist-modify-public ' +
          'playlist-modify-private ' +
-         'ugc-image-upload user-library-modify')
+         'ugc-image-upload ' +
+         'user-library-modify')
 
 running = True
 code = ''
@@ -65,11 +66,29 @@ def run_server(server_class=server.HTTPServer, handler_class=SimpleHTTPRequestHa
 
 
 def generate_random_string(length):
+    """Generates a random string of ascii letters and digits.
+
+    Args:
+        length: Length of the string to be generated.
+
+    Returns:
+        A string of length length of ascii letters and digits
+    """
+
     possible = string.ascii_letters + string.digits
     return ''.join(secrets.choice(possible) for i in range(length))
 
 
 def sha256(plain):
+    """ Generates a sha-256 hashed byte string.
+
+    Args:
+        plain: The unhashed string to be hashed
+
+    Returns:
+        A 32-byte string unique to the argument
+    """
+
     m = hashlib.sha256()
     m.update(plain.encode())
     hashed = m.digest()
@@ -77,10 +96,33 @@ def sha256(plain):
 
 
 def base64_encode(input):
+    """Encodes hashed 32-byte string to url encoded Base64 string
+
+    Args:
+        input: a 32-byte string (generated with sha256())
+
+    Returns:
+        A Base64 URL encoded string
+    """
+
     return base64.b64encode(input).replace(b'=', b'').replace(b'+', b'-').replace(b'/', b'_')
 
 
 def request_access_token():
+    """ Requests and returns Spotify access token
+
+    Returns:
+        a dict containing the access token, the token type ("Bearer"), scope,
+        the time period in seconds for which the access token is valid, and
+        a refresh token. For example:
+
+        {'access_token': 'somerandomstring'
+        'token': 'Bearer'
+        'scope': 'user-read-private playlist-read-private'
+        'expires_in': 3600
+        'refresh_token': 'somerandomstring'}
+    """
+
     code_verifier = generate_random_string(64)
 
     hashed = sha256(code_verifier)
@@ -113,8 +155,12 @@ def request_access_token():
     return current_token
 
 
-# create playlist "rym" with sonemic logo if it does not already exist
 def generate_rym_playlist(current_token):
+    """Generates a playlist under current user titled 'rym' with rym logo
+
+    Args:
+        current_token: A dict returned from request_access_token().
+    """
 
     if not get_playlist_id(current_token):
         with survey.graphics.SpinProgress(prefix='Creating RYM playlist', epilogue='RYM playlist created!') as progress:        
@@ -145,8 +191,16 @@ def generate_rym_playlist(current_token):
                                  data=base64_bytes)
 
 
-# get the playlist id if it exists, otherwise return an empty string
 def get_playlist_id(current_token):
+    """ Returns the id of the playlist 'rym' from generate_rym_playlist()
+ 
+    Args:
+        current_token: A dict returned from request_access_token()
+
+    Returns:
+        The playlist id from Spotify or '' if 'rym' playlist does not exist'
+    """
+
     headers = {"Authorization": "Bearer " + current_token["access_token"]}
 
     r = requests.get(BASE_URL + "/me/playlists", headers=headers)
@@ -160,6 +214,17 @@ def get_playlist_id(current_token):
 
 
 def get_album_id(current_token, album_title, album_artist):
+    """Gets the album id from spotify given the album title and artist
+
+    Args:
+        current_token: A dict pulled and saved from request_access_token()
+        album_title: A string of the title of an album
+        album_artist: A string of the name of the artist of the album
+
+    Returns:
+        The album id (string) of the album in Spotify API
+
+    """
 
     # get the first two albums resulting for the search query q
     payload = {
@@ -205,6 +270,13 @@ def get_album_id(current_token, album_title, album_artist):
 
 
 def add_albums_to_library(current_token, csv_filename, min_rating):
+    """ Adds albums from the provided csv file to to user's Spotify library
+
+    Args:
+        current_token: A dict pulled and saved from request_access_token()
+        csv_filename: The path to the csv file exported from RYM
+        min_rating: The minium rating an album should have (0 - 10)
+    """
 
     with open(csv_filename, newline='') as csvfile:
         reader = csv.reader(csvfile)
@@ -246,8 +318,12 @@ def add_albums_to_library(current_token, csv_filename, min_rating):
                 i = i + 20 if i + 20 < len(album_ids) else len(album_ids)
 
 
-# adds albums to the generated playlist, or existing playlist
-def add_albums_to_playlist(access_token, csv_filename, playlist_id, min_rating):
+def add_albums_to_playlist(current_token, csv_filename, playlist_id, min_rating):
+    """ Adds the tracks from albums to the rym playlist
+
+    Args:
+        access_token
+    """
 
     with open(csv_filename, newline='') as csvfile:
         reader = csv.reader(csvfile)
