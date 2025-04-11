@@ -43,7 +43,7 @@ code = ''
 class SimpleHTTPRequestHandler(server.BaseHTTPRequestHandler):
     """HTTP request handler with additional properties and functions"""
 
-    def do_GET(self):
+    def do_GET(self) -> None:
         """Handle GET requests"""
         global running
         global code
@@ -54,7 +54,7 @@ class SimpleHTTPRequestHandler(server.BaseHTTPRequestHandler):
         self.send_response(200)
         self.end_headers()
 
-    def log_message(self, format, *args):
+    def log_message(self, format, *args) -> None:
         pass
 
 
@@ -67,7 +67,7 @@ def run_server(
         httpd.handle_request()
 
 
-def generate_random_string(length):
+def generate_random_string(length) -> str:
     """Generates a random string of ascii letters and digits.
 
     Args:
@@ -81,7 +81,7 @@ def generate_random_string(length):
     return ''.join(secrets.choice(possible) for i in range(length))
 
 
-def sha256(plain):
+def sha256(plain) -> bytes:
     """ Generates a sha-256 hashed byte string.
 
     Args:
@@ -97,7 +97,7 @@ def sha256(plain):
     return hashed
 
 
-def base64_encode(input):
+def base64_encode(input) -> bytes:
     """Encodes hashed 32-byte string to url encoded Base64 string
 
     Args:
@@ -111,7 +111,7 @@ def base64_encode(input):
     return res
 
 
-def request_access_token():
+def request_access_token() -> str:
     """ Requests and returns Spotify access token
 
     Returns:
@@ -158,7 +158,7 @@ def request_access_token():
     return current_token
 
 
-def generate_rym_playlist(current_token):
+def generate_rym_playlist(current_token) -> None:
     """Generates a playlist under current user titled 'rym' with rym logo
 
     Args:
@@ -166,35 +166,40 @@ def generate_rym_playlist(current_token):
     """
 
     if not get_playlist_id(current_token):
-        with survey.graphics.SpinProgress(prefix='Creating RYM playlist', epilogue='RYM playlist created!') as progress:        
-            headers = {"Authorization": "Bearer " + current_token["access_token"]}
+        with survey.graphics.SpinProgress(
+                prefix='Creating RYM playlist',
+                epilogue='RYM playlist created!') as progress:
 
-            r = requests.get(BASE_URL + "/me", headers=headers)
+            headers = {'Authorization': 'Bearer ' +
+                       current_token['access_token']}
+
+            r = requests.get(BASE_URL + '/me', headers=headers)
             current_user = json.loads(r.text)
 
             data = {'name': 'rym'}
-            headers = {
-                        "Authorization": "Bearer " + current_token["access_token"],
-                        'Content-Type': 'application/json'
-                    }
-            r = requests.post(BASE_URL + f'/users/{current_user["id"]}/playlists',
+            headers = {'Authorization': 'Bearer ' +
+                                        current_token['access_token'],
+                       'Content-Type': 'application/json'}
+            r = requests.post(BASE_URL +
+                              f'/users/{current_user["id"]}/playlists',
                               headers=headers,
                               data=json.dumps(data))
 
-            headers = {
-                        "Authorization": "Bearer " + current_token["access_token"],
-                        'Content-Type': 'image/jpeg'
-                    }
+            headers = {'Authorization': 'Bearer ' +
+                                        current_token['access_token'],
+                       'Content-Type': 'image/jpeg'}
+
             playlist_info = json.loads(r.text)
             with open('sonemic.jpeg', 'rb') as image_file:
                 base64_bytes = base64.b64encode(image_file.read())
 
-                r = requests.put(BASE_URL + f'/playlists/{playlist_info["id"]}/images',
+                r = requests.put(BASE_URL +
+                                 f'/playlists/{playlist_info["id"]}/images',
                                  headers=headers,
                                  data=base64_bytes)
 
 
-def get_playlist_id(current_token):
+def get_playlist_id(current_token) -> str:
     """ Returns the id of the playlist 'rym' from generate_rym_playlist()
  
     Args:
@@ -216,7 +221,7 @@ def get_playlist_id(current_token):
     return ''
 
 
-def get_album_id(current_token, album_title, album_artist):
+def get_album_id(current_token, album_title, album_artist) -> str:
     """Gets the album id from spotify given the album title and artist
 
     Args:
@@ -256,23 +261,30 @@ def get_album_id(current_token, album_title, album_artist):
             # get the album title without the extraneous labels like
             # 'remaster', 'deluxe', 'live', 'edition'
             res_title = res[i]['name']
-            m = re.search(r" \(.*((r|R)emaster|(E|e)dition|(L|l)ive|(D|d)eluxe).*\)", res_title)
+            # matches with anything within parenths with these discriptors
+            m = re.search(r" \(.*(" +
+                          r"(r|R)emaster|" +
+                          r"(E|e)dition|" +
+                          r"(L|l)ive|" +
+                          r"(D|d)eluxe" +
+                          r").*\)", res_title)
             if m:
                 res_title = res_title.replace(m.group(), '')
             # get the artist
             res_artist = res[i]['artists'][0]['name']
 
-            if res_title.lower() == album_title.lower() and res_artist.lower() == album_artist.lower():
+            if (res_title.lower() == album_title.lower() and
+                    res_artist.lower() == album_artist.lower()):
 
                 # get track uris from the album
                 album_id = res[i]['id']
-            
+
             i += 1
 
     return album_id
 
 
-def add_albums_to_library(current_token, csv_filename, min_rating):
+def add_albums_to_library(current_token, csv_filename, min_rating) -> None:
     """ Adds albums from the provided csv file to to user's Spotify library
 
     Args:
@@ -294,12 +306,15 @@ def add_albums_to_library(current_token, csv_filename, min_rating):
                     'album_artist': row[1] + " " + row[2] if row[1] else row[2]
                     })
 
-
-        with survey.graphics.SpinProgress(prefix='Getting album ids', epilogue='Album ids retrieved') as progress:        
+        with survey.graphics.SpinProgress(
+                prefix='Getting album ids',
+                epilogue='Album ids retrieved') as progress:
             # create a list of album ids to pass to api
             album_ids = []
             for i in albums:
-                album_id = get_album_id(current_token, i['album_title'], i['album_artist'])
+                album_id = get_album_id(current_token,
+                                        i['album_title'],
+                                        i['album_artist'])
                 if album_id:
                     album_ids.append(album_id)
 
@@ -308,20 +323,27 @@ def add_albums_to_library(current_token, csv_filename, min_rating):
                 "Content-Type": "application/json"
                 }
 
-
-        with survey.graphics.SpinProgress(prefix='Batch adding albums', epilogue='Albums added to user library') as progress:        
+        with survey.graphics.SpinProgress(
+                prefix='Batch adding albums',
+                epilogue='Albums added to user library') as progress:
             # adding albums in chunks of 20
             i = 0
             j = 20 if 20 < len(album_ids) else len(album_ids)
             while i < j:
                 album_ids_dict = {'ids': album_ids[i:j]}
                 album_ids_json = json.dumps(album_ids_dict)
-                r = requests.put(BASE_URL + '/me/albums', headers=headers, data=album_ids_json)
+                r = requests.put(BASE_URL + '/me/albums',
+                                 headers=headers, data=album_ids_json)
                 j = j + 20 if j + 20 < len(album_ids) else len(album_ids)
                 i = i + 20 if i + 20 < len(album_ids) else len(album_ids)
 
 
-def add_albums_to_playlist(current_token, csv_filename, playlist_id, min_rating):
+def add_albums_to_playlist(
+    current_token,
+    csv_filename,
+    playlist_id,
+    min_rating
+) -> None:
     """ Adds the tracks from albums to the rym playlist
 
     Args:
@@ -342,27 +364,39 @@ def add_albums_to_playlist(current_token, csv_filename, playlist_id, min_rating)
                     })
 
         # use a loading bar to indicate progress to user
-        with survey.graphics.LineProgress(len(albums), prefix='Adding albums to RYM playlist', epilogue='done!') as progress:
+        with survey.graphics.LineProgress(
+                len(albums),
+                prefix='Adding albums to RYM playlist',
+                epilogue='done!') as progress:
 
             for i in albums:
 
                 # get album title and artist for the search query q
-                album_id = get_album_id(current_token, i['album_title'], i['album_artist'])
+                album_id = get_album_id(current_token,
+                                        i['album_title'],
+                                        i['album_artist'])
                 if album_id:
                     headers = {
-                            "Authorization": "Bearer " + current_token["access_token"]
+                            "Authorization": "Bearer " +
+                                             current_token["access_token"]
                             }
-                    r = requests.get(BASE_URL + f'/albums/{album_id}/tracks', headers=headers)
-                    track_uris = [f'spotify:track:{track["id"]}' for track in json.loads(r.text)['items']]
+                    r = requests.get(BASE_URL + f'/albums/{album_id}/tracks',
+                                     headers=headers)
+                    track_uris = [f'spotify:track:{track["id"]}' for track in
+                                  json.loads(r.text)['items']]
                     uris_dict = {'uris': track_uris}
                     uris_json = json.dumps(uris_dict)
 
                     # add the tracks to the playlist
                     headers = {
-                            "Authorization": "Bearer " + current_token["access_token"],
+                            "Authorization": "Bearer " +
+                                             current_token["access_token"],
                             "Content-Type": "application/json"
                             }
-                    r = requests.post(BASE_URL + f'/playlists/{playlist_id}/tracks', headers=headers, data=uris_json)
+                    r = requests.post(BASE_URL +
+                                      f'/playlists/{playlist_id}/tracks',
+                                      headers=headers,
+                                      data=uris_json)
 
                 progress.move(1)
 
