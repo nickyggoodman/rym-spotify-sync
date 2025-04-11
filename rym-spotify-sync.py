@@ -414,19 +414,30 @@ if __name__ == "__main__":
     current_token = request_access_token()
 
     # select the minimum rating an album should have to be added to spotify
-    min_rating = survey.routines.numeric('What minimum rating should albums have to be transferred (0 - 10)? ', decimal=False, value=6)
+    min_rating = survey.routines.numeric(
+                    'What minimum rating should albums have ' +
+                    'to be transferred (0 - 10)? ',
+                    decimal=False,
+                    value=6)
+
     while min_rating > 10 or min_rating < 0:
         print('enter value 0 - 10')
-        min_rating = survey.routines.numeric('Rating threshold: ', decimal=False, value=6)
+        min_rating = survey.routines.numeric('Rating threshold: ',
+                                             decimal=False,
+                                             value=6)
 
     # options for how we add and sort music from rym file
     options = ('add songs to rym playlist',
                'add albums to library')
-    indexes = survey.routines.basket('how would you like your music added?', options=options)
+    indexes = survey.routines.basket('how would you like your music added?',
+                                     options=options)
     if 0 in indexes:
         generate_rym_playlist(current_token)
         playlist_id = get_playlist_id(current_token)
-        add_albums_to_playlist(current_token, filename, playlist_id, min_rating)
+        add_albums_to_playlist(current_token,
+                               filename,
+                               playlist_id,
+                               min_rating)
     if 1 in indexes:
         add_albums_to_library(current_token, filename, min_rating)
 
