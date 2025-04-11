@@ -58,7 +58,9 @@ class SimpleHTTPRequestHandler(server.BaseHTTPRequestHandler):
         pass
 
 
-def run_server(server_class=server.HTTPServer, handler_class=SimpleHTTPRequestHandler):
+def run_server(
+        server_class=server.HTTPServer,
+        handler_class=SimpleHTTPRequestHandler) -> None:
     server_address = ('', 3000)
     httpd = server_class(server_address, handler_class)
     while running:
@@ -104,8 +106,9 @@ def base64_encode(input):
     Returns:
         A Base64 URL encoded string
     """
-
-    return base64.b64encode(input).replace(b'=', b'').replace(b'+', b'-').replace(b'/', b'_')
+    res = base64.b64encode(input)
+    res = res.replace(b'=', b'').replace(b'+', b'-').replace(b'/', b'_')
+    return res
 
 
 def request_access_token():
@@ -122,7 +125,6 @@ def request_access_token():
         'expires_in': 3600
         'refresh_token': 'somerandomstring'}
     """
-
     code_verifier = generate_random_string(64)
 
     hashed = sha256(code_verifier)
@@ -137,7 +139,8 @@ def request_access_token():
             'redirect_uri': REDIRECT_URL
             }
 
-    r = webbrowser.open(AUTHORIZATION_ENDPOINT + "?" + urllib.parse.urlencode(payload))
+    r = webbrowser.open(AUTHORIZATION_ENDPOINT +
+                        "?" + urllib.parse.urlencode(payload))
     run_server()
     headers = {
             'Content-Type': 'application/x-www-form-urlencoded'
