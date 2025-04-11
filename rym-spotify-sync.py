@@ -23,7 +23,6 @@ from http import server
 
 BASE_URL = 'https://api.spotify.com/v1'
 
-# Specific to this application
 REDIRECT_URL = 'http://localhost:3000/callback'
 CLIENT_ID = '58a65635db43470fa773cba91b820b49'
 
@@ -39,9 +38,13 @@ SCOPE = ('user-read-private ' +
 running = True
 code = ''
 
-
 class SimpleHTTPRequestHandler(server.BaseHTTPRequestHandler):
-    """HTTP request handler with additional properties and functions"""
+    """HTTP request handler with additional properties and functions
+
+        Extends the base HTTPRequestHandler provided by the http library for
+        use of retrieving callback from Spotify API call for authorization
+        code.
+    """
 
     def do_GET(self) -> None:
         """Handle GET requests"""
@@ -59,8 +62,9 @@ class SimpleHTTPRequestHandler(server.BaseHTTPRequestHandler):
 
 
 def run_server(
-        server_class=server.HTTPServer,
-        handler_class=SimpleHTTPRequestHandler) -> None:
+    server_class=server.HTTPServer,
+    handler_class=SimpleHTTPRequestHandler
+) -> None:
     server_address = ('', 3000)
     httpd = server_class(server_address, handler_class)
     while running:
@@ -90,11 +94,10 @@ def sha256(plain) -> bytes:
     Returns:
         A 32-byte string unique to the argument
     """
-
-    m = hashlib.sha256()
-    m.update(plain.encode())
-    hashed = m.digest()
-    return hashed
+    hash_obj = hashlib.sha256()
+    hash_obj.update(plain.encode())
+    message_digest = hash_obj.digest()
+    return message_digest
 
 
 def base64_encode(input) -> bytes:
@@ -107,12 +110,18 @@ def base64_encode(input) -> bytes:
         A Base64 URL encoded string
     """
     res = base64.b64encode(input)
+    # Replace these characters as to URL encode the byte string
     res = res.replace(b'=', b'').replace(b'+', b'-').replace(b'/', b'_')
     return res
 
 
 def request_access_token() -> str:
     """ Requests and returns Spotify access token
+
+    Per Spotify API documentation, this function follows getting an
+    authorization with PKCE flow. Much of this code follows the example
+    provided by Spotify at https://github.com/spotify/web-api-examples by
+    simply translating it to python and utilizing python libraries.
 
     Returns:
         a dict containing the access token, the token type ("Bearer"), scope,
