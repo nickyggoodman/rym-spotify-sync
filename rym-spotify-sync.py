@@ -32,6 +32,7 @@ TOKEN_ENDPOINT = 'https://accounts.spotify.com/api/token'
 running = True
 code = ''
 
+
 class SimpleHTTPRequestHandler(server.BaseHTTPRequestHandler):
     """HTTP request handler with additional properties and functions
 
@@ -49,7 +50,11 @@ class SimpleHTTPRequestHandler(server.BaseHTTPRequestHandler):
         query_components = dict(qc.split("=") for qc in query.split("&"))
         code = query_components['code']
         self.send_response(200)
+        self.send_header("Content-type", "text/html")
         self.end_headers()
+        self.wfile.write("<html><head><title>rym-spotify-sync</title></head>".encode())
+        self.wfile.write("<body><p>rym-spotify-sync</p>".encode())
+        self.wfile.write("</body></html>".encode())
 
     def log_message(self, format, *args) -> None:
         pass
