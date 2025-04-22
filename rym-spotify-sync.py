@@ -28,12 +28,6 @@ CLIENT_ID = '58a65635db43470fa773cba91b820b49'
 
 AUTHORIZATION_ENDPOINT = 'https://accounts.spotify.com/authorize'
 TOKEN_ENDPOINT = 'https://accounts.spotify.com/api/token'
-SCOPE = ('user-read-private ' +
-         'playlist-read-private ' +
-         'playlist-modify-public ' +
-         'playlist-modify-private ' +
-         'ugc-image-upload ' +
-         'user-library-modify')
 
 running = True
 code = ''
@@ -115,7 +109,7 @@ def base64_encode(input) -> bytes:
     return res
 
 
-def request_access_token() -> str:
+def request_access_token(scope) -> str:
     """ Requests and returns Spotify access token
 
     Per Spotify API documentation, this function follows getting an
@@ -142,7 +136,7 @@ def request_access_token() -> str:
     payload = {
             'response_type': 'code',
             'client_id': CLIENT_ID,
-            'scope': SCOPE,
+            'scope': scope,
             'code_challenge_method': 'S256',
             'code_challenge': code_challenge,
             'redirect_uri': REDIRECT_URL
@@ -154,8 +148,7 @@ def request_access_token() -> str:
     headers = {
             'Content-Type': 'application/x-www-form-urlencoded'
     }
-    payload = {
-            'client_id': CLIENT_ID,
+    payload = { 'client_id': CLIENT_ID,
             'grant_type': 'authorization_code',
             'code': code,
             'redirect_uri': REDIRECT_URL,
@@ -418,9 +411,6 @@ if __name__ == "__main__":
 
     filename = sys.argv[1]
 
-    survey.printers.info('Authorize this tool through your browser...')
-
-    current_token = request_access_token()
 
     # select the minimum rating an album should have to be added to spotify
     min_rating = survey.routines.numeric(
@@ -440,6 +430,21 @@ if __name__ == "__main__":
                'add albums to library')
     indexes = survey.routines.basket('how would you like your music added?',
                                      options=options)
+
+    # add only necessary scopes
+    scope = ''
+    if 0 in indexes:
+        scope += ('user-read-private ' +
+                  'playlist-read-private ' +
+                  'playlist-modify-public ' +
+                  'playlist-modify-private ' +
+                  'ugc-image-upload ')
+    if 1 in indexes:
+        scope += ('user-library-modify ')
+
+    survey.printers.info('Authorize this tool through your browser...')
+    current_token = request_access_token(scope)
+
     if 0 in indexes:
         generate_rym_playlist(current_token)
         playlist_id = get_playlist_id(current_token)
@@ -449,5 +454,4 @@ if __name__ == "__main__":
                                min_rating)
     if 1 in indexes:
         add_albums_to_library(current_token, filename, min_rating)
-
 
